@@ -61,27 +61,29 @@ Rune.initLogic({
       atRest: true
     }
 
+    const playerSize = 23;
+    const ballSize = 15;
+
     initialState.table.friction = 0.5;
     initialState.table.horizontalGap = Math.floor(targetScreenWidth / 6);
 
-    // const ball = physics.createPuck(initialState.table, targetScreenWidth / 2, targetScreenHeight / 2, 15);
-    const ball = physics.createPuck(initialState.table, (targetScreenWidth / 2) - initialState.table.horizontalGap + 20, targetScreenHeight - 80, 15);
+    const ball = physics.createPuck(initialState.table, targetScreenWidth / 2, targetScreenHeight / 2, ballSize);
     ball.canUseGap = true;
 
     initialState.table.pucks.push(ball)
-    initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) - initialState.table.horizontalGap + 30, targetScreenHeight - 150, 20, { team: Team.BLUE }));
+    
     // team1
-    initialState.table.pucks.push(physics.createPuck(initialState.table, targetScreenWidth / 2, 80, 20, { team: Team.BLUE }));
-    initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) - 50, 130, 20, { team: Team.BLUE }));
-    initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) + 50, 130, 20, { team: Team.BLUE }));
-    initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) - 90, 270, 20, { team: Team.BLUE }));
-    initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) + 90, 270, 20, { team: Team.BLUE }));
+    initialState.table.pucks.push(physics.createPuck(initialState.table, targetScreenWidth / 2, 80, playerSize, { team: Team.BLUE }));
+    initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) - 50, 130, playerSize, { team: Team.BLUE }));
+    initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) + 50, 130, playerSize, { team: Team.BLUE }));
+    initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) - 90, 270, playerSize, { team: Team.BLUE }));
+    initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) + 90, 270, playerSize, { team: Team.BLUE }));
     // team2
-    // initialState.table.pucks.push(physics.createPuck(initialState.table, targetScreenWidth / 2, targetScreenHeight - 80, 20, { team: Team.RED }));
-    // initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) - 50, targetScreenHeight - 130, 20, { team: Team.RED }));
-    // initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) + 50, targetScreenHeight - 130, 20, { team: Team.RED }));
-    // initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) - 90, targetScreenHeight - 270, 20, { team: Team.RED }));
-    // initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) + 90, targetScreenHeight - 270, 20, { team: Team.RED }));
+    initialState.table.pucks.push(physics.createPuck(initialState.table, targetScreenWidth / 2, targetScreenHeight - 80, playerSize, { team: Team.RED }));
+    initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) - 50, targetScreenHeight - 130, playerSize, { team: Team.RED }));
+    initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) + 50, targetScreenHeight - 130, playerSize, { team: Team.RED }));
+    initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) - 90, targetScreenHeight - 270, playerSize, { team: Team.RED }));
+    initialState.table.pucks.push(physics.createPuck(initialState.table, (targetScreenWidth / 2) + 90, targetScreenHeight - 270, playerSize, { team: Team.RED }));
 
     return initialState;
   },
@@ -91,14 +93,15 @@ Rune.initLogic({
     physics.tableStep(15, table)
     physics.tableStep(15, table);
     context.game.table = table;
-    context.game.atRest = context.game.table.atRest && context.game.flickBack <= 0;
+    context.game.atRest = physics.tableAtRest(table) && context.game.flickBack <= 0;
   },
   actions: {
     shoot: ({ puckId, dx, dy, power }, { game }) => {
+      game.whoseTurn = game.whoseTurn === Team.BLUE ? Team.RED : Team.BLUE;
       const puck = game.table.pucks.find(p => p.id === puckId);
       if (puck) {
-        puck.velocity.x = dx * power;
-        puck.velocity.y = dy * power;
+        puck.velocity.x = dx * power * 0.75;
+        puck.velocity.y = dy * power * 0.75;
       }
     },
   },

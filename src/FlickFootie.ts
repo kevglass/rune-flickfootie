@@ -197,9 +197,14 @@ export class FlickFootie implements graphics.Game {
                     puckX = puckY;
                     puckY = t;
                 }
+                const dragX = this.dragX;
+                let dragY = -this.dragY;
+                if (this.myTeam() === Team.BLUE) {
+                    dragY = -dragY;
+                }
                 graphics.push();
                 graphics.translate(puckX, puckY);
-                graphics.rotate(this.landscape ? Math.atan2(this.dragX, -this.dragY) : Math.atan2(-this.dragY, this.dragX));
+                graphics.rotate(this.landscape ? Math.atan2(dragX, -dragY) : Math.atan2(-dragY, dragX));
                 graphics.fillRect(0, 0, this.dragPower, 5, "rgba(255,255,255,0.5)");
                 graphics.fillRect(this.dragPower, -10, 5, 20, "white");
 
@@ -218,11 +223,11 @@ export class FlickFootie implements graphics.Game {
                 }
 
                 if (this.game.atRest && puck.data?.team === this.game.whoseTurn && this.game.whoseTurn === this.myTeam() && !this.draggingPuck) {
-                    const radius = puck.radius + 5;
+                    const radius = puck.radius + 7;
 
                     graphics.push();
                     graphics.translate(puckX, puckY);
-                    graphics.rotate(this.frameCount * 0.05);
+                    graphics.rotate(this.frameCount * 0.025);
                     graphics.drawImage(
                         this.spinRing,
                         - radius,
@@ -262,9 +267,5 @@ export class FlickFootie implements graphics.Game {
         // graphics.fillRect(5, 5, 70, 50, "black");
         // graphics.drawText(10, 30, "" + graphics.getFPS(), this.font, "white");
         // graphics.drawText(10, 50, "" + this.game?.table.atRest, this.font, "white");
-    }
-
-    zoomChanged?(): void {
-        // do nothing
     }
 }
