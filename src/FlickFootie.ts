@@ -1,8 +1,9 @@
-import { graphics, physics } from "togl";
+import { graphics, physics, sound } from "togl";
 import {
     GameState,
     GameUpdate,
     Team,
+    inputDelay,
     targetScreenHeight,
     targetScreenWidth,
 } from "./logic";
@@ -22,6 +23,7 @@ export class FlickFootie implements graphics.Game {
     spinRing: graphics.GameImage;
 
     font: graphics.GameFont;
+    bigFont: graphics.GameFont;
     frameCount = 0;
     offsetX = 0;
     offsetY = 0;
@@ -35,6 +37,17 @@ export class FlickFootie implements graphics.Game {
     dragY = 0;
     dragPower = 0;
 
+    bottomBar: graphics.GameImage;
+    topBar: graphics.GameImage;
+
+    goalScored?: Team;
+    gameOver?: Team;
+
+    sfxGoal: sound.Sound;
+    sfxHit: sound.Sound;
+    sfxBall: sound.Sound;
+    sfxWhistle: sound.Sound;
+
     constructor() {
         graphics.init(graphics.RendererType.WEBGL, false, undefined, 5);
 
@@ -44,8 +57,16 @@ export class FlickFootie implements graphics.Game {
         this.ball = graphics.loadImage(ASSETS["ball.png"]);
         this.team1 = graphics.loadImage(ASSETS["team1.png"]);
         this.team2 = graphics.loadImage(ASSETS["team2.png"]);
+        this.bottomBar = graphics.loadImage(ASSETS["bottom-bar.png"]);
+        this.topBar = graphics.loadImage(ASSETS["top-bar.png"]);
         this.spinRing = graphics.loadImage(ASSETS["spinring.png"]);
-        this.font = graphics.generateFont(20, "white");
+        this.font = graphics.generateFont(16, "white");
+        this.bigFont = graphics.generateFont(50, "white");
+
+        this.sfxGoal = sound.loadSound(ASSETS["goal.mp3"]);
+        this.sfxHit = sound.loadSound(ASSETS["hit.mp3"]);
+        this.sfxBall = sound.loadSound(ASSETS["ball.mp3"]);
+        this.sfxWhistle = sound.loadSound(ASSETS["whistle.mp3"]);
     }
 
     start(): void {
@@ -55,6 +76,31 @@ export class FlickFootie implements graphics.Game {
     gameUpdate(update: GameUpdate): void {
         this.game = update.game;
         this.localPlayerId = update.yourPlayerId;
+
+        if (update.game.gameStart) {
+            this.goalScored = undefined;
+            this.gameOver = undefined;
+            setTimeout(() => { sound.playSound(this.sfxWhistle) }, 100);
+        }
+        for (const event of update.game.gameEvents) {
+            if (event.type === "ball") {
+                sound.playSound(this.sfxBall);
+            }
+            if (event.type === "players") {
+                sound.playSound(this.sfxHit);
+            }
+            if (event.type === "goal") {
+                sound.playSound(this.sfxGoal);
+                this.goalScored = event.team;
+            }
+            if (event.type === "gameOver") {
+                this.gameOver = event.winner;
+            }
+            if (event.type === "reset") {
+                sound.playSound(this.sfxWhistle);
+                this.goalScored = undefined;
+            }
+        }
     }
 
     toWorldCoordinates(x: number, y: number): { x: number, y: number } {
@@ -81,6 +127,11 @@ export class FlickFootie implements graphics.Game {
     }
 
     mouseDown(px: number, py: number): void {
+        const ready = !this.gameOver && !this.goalScored;
+        if (!ready) {
+            return;
+        }
+
         const { x, y } = this.toWorldCoordinates(px, py);
         this.mx = x;
         this.my = y;
@@ -132,9 +183,11 @@ export class FlickFootie implements graphics.Game {
                     dy: -this.dragY,
                     power: this.dragPower * 3,
                 });
-
             }
-            this.draggingPuck = undefined;
+
+            setTimeout(() => {
+                this.draggingPuck = undefined;
+            }, inputDelay);
         }
     }
 
@@ -187,31 +240,43 @@ export class FlickFootie implements graphics.Game {
         } else {
             graphics.drawImage(this.bg, -50, -50, targetScreenWidth + 100, targetScreenHeight + 100);
         }
-        if (this.game) {
-            if (this.draggingPuck) {
-                const puck = this.draggingPuck;
-                let puckX = Math.floor(puck.position.x)
-                let puckY = Math.floor(this.myTeam() === Team.BLUE ? targetScreenHeight - puck.position.y : puck.position.y);
-                if (this.landscape) {
-                    const t = puckX;
-                    puckX = puckY;
-                    puckY = t;
-                }
-                const dragX = this.dragX;
-                let dragY = -this.dragY;
-                if (this.myTeam() === Team.BLUE) {
-                    dragY = -dragY;
-                }
-                graphics.push();
-                graphics.translate(puckX, puckY);
-                graphics.rotate(this.landscape ? Math.atan2(dragX, -dragY) : Math.atan2(-dragY, dragX));
-                graphics.fillRect(0, 0, this.dragPower, 5, "rgba(255,255,255,0.5)");
-                graphics.fillRect(this.dragPower, -10, 5, 20, "white");
 
-                for (let i=0;i<8;i++) {
-                    graphics.drawImage(this.whiteCircle, -5 - (i * this.dragPower / 3), -5, 10, 10);
+        const ready = !this.gameOver && !this.goalScored && !this.game?.pendingShot;
+
+        if (this.game) {
+            if (((this.draggingPuck && ready) || (this.game.pendingShot && this.game.whoseTurn !== this.myTeam()))) {
+                const puck = this.draggingPuck ?? this.game.table.pucks.find(p => p.id === this.game?.pendingShot?.id);
+                if (puck) {
+                    let puckX = Math.floor(puck.position.x)
+                    let puckY = Math.floor(this.myTeam() === Team.BLUE ? targetScreenHeight - puck.position.y : puck.position.y);
+                    if (this.landscape) {
+                        const t = puckX;
+                        puckX = puckY;
+                        puckY = t;
+                    }
+                    const dragX = this.dragX;
+                    let dragY = -this.dragY;
+                    if (this.myTeam() === Team.BLUE) {
+                        dragY = -dragY;
+                    }
+
+                    let scaleBack = 1;
+                    if (this.game.pendingShot) {
+                        scaleBack = Math.max(0, (this.game.pendingShot.fireAt - Rune.gameTime()) / inputDelay);
+                    }
+                    graphics.push();
+                    graphics.translate(puckX, puckY);
+                    graphics.rotate(this.landscape ? Math.atan2(dragX, -dragY) : Math.atan2(-dragY, dragX));
+                    graphics.fillRect(0, 0, this.dragPower * scaleBack, 5, "rgba(255,255,255,0.5)");
+                    graphics.fillRect((this.dragPower - 2) * scaleBack, -10, 5, 25, "white");
+
+                    if (!this.game.pendingShot) {
+                        for (let i = 0; i < 8; i++) {
+                            graphics.drawImage(this.whiteCircle, -5 - (i * this.dragPower / 3), -5, 10, 10);
+                        }
+                    }
+                    graphics.pop();
                 }
-                graphics.pop();
             }
             for (const puck of this.game.table.pucks) {
                 let puckX = Math.floor(puck.position.x)
@@ -222,7 +287,7 @@ export class FlickFootie implements graphics.Game {
                     puckY = t;
                 }
 
-                if (this.game.atRest && puck.data?.team === this.game.whoseTurn && this.game.whoseTurn === this.myTeam() && !this.draggingPuck) {
+                if (ready && this.game.atRest && puck.data?.team === this.game.whoseTurn && this.game.whoseTurn === this.myTeam() && !this.draggingPuck) {
                     const radius = puck.radius + 7;
 
                     graphics.push();
@@ -240,7 +305,7 @@ export class FlickFootie implements graphics.Game {
 
                 graphics.push();
                 graphics.translate(puckX, puckY);
-                graphics.rotate((this.myTeam() === Team.BLUE ? Math.PI : 0) + (this.landscape ? -Math.PI/2 : 0));
+                graphics.rotate((this.myTeam() === Team.BLUE ? Math.PI : 0) + (this.landscape ? -Math.PI / 2 : 0));
                 graphics.drawImage(
                     puck.data?.team === Team.BLUE ? this.team1 : puck.data?.team === Team.RED ? this.team2 : this.ball,
                     -puck.radius,
@@ -251,21 +316,62 @@ export class FlickFootie implements graphics.Game {
                 graphics.pop();
             }
 
+            graphics.pop();
+
+            if (this.game.atRest && !this.draggingPuck && ready) {
+                if (this.game.whoseTurn === this.myTeam()) {
+                    const msg = "Your Turn";
+                    graphics.drawImage(this.bottomBar, Math.floor((graphics.width() - this.bottomBar.width) / 2), graphics.height() - this.bottomBar.height, this.bottomBar.width, this.bottomBar.height, this.getTeamColour(this.myTeam()));
+                    graphics.drawText(Math.floor((graphics.width() - graphics.textWidth(msg, this.font)) / 2), graphics.height() - 4, msg, this.font);
+                } else {
+                    const msg = this.getTeamName(this.game.whoseTurn) + " Turn";
+                    graphics.drawImage(this.topBar, Math.floor((graphics.width() - this.topBar.width) / 2), 0, this.topBar.width, this.topBar.height, this.getTeamColour(this.game.whoseTurn));
+                    graphics.drawText(Math.floor((graphics.width() - graphics.textWidth(msg, this.font)) / 2), 18, msg, this.font);
+                }
+            }
+
+            graphics.drawImage(this.topBar, -this.topBar.width + 40, 0, this.topBar.width, this.topBar.height, this.getTeamColour(Team.RED));
+            graphics.drawText(Math.floor((30 - graphics.textWidth(this.game.scores[Team.RED] + "", this.font)) / 2), 18, this.game.scores[Team.RED] + "", this.font);
+            graphics.drawImage(this.topBar, graphics.width() - 40, 0, this.topBar.width, this.topBar.height, this.getTeamColour(Team.BLUE));
+            graphics.drawText(graphics.width() - 30 + Math.floor((30 - graphics.textWidth(this.game.scores[Team.BLUE] + "", this.font)) / 2), 18, this.game.scores[Team.BLUE] + "", this.font);
+
+
+            if (this.gameOver) {
+                graphics.fillRect(0, Math.floor(graphics.height() / 2) - 50, graphics.width(), 100, "rgba(0,0,0,0.7)");
+                const col = this.getTeamColour(this.gameOver);
+                const steps = 11;
+                const step = Math.floor(graphics.width() / steps);
+                for (let i = 0; i < steps; i += 2) {
+                    graphics.fillRect(i * (step), Math.floor(graphics.height() / 2) - 46, step, 10, col);
+                    graphics.fillRect(i * (step), Math.floor(graphics.height() / 2) + 36, step, 10, col);
+                }
+
+                const snippet = this.gameOver === this.myTeam() ? "YOU WIN!" : this.getTeamName(this.gameOver).toUpperCase() + " WINS!";
+                graphics.drawText(Math.floor((graphics.width() - graphics.textWidth(snippet, this.bigFont)) / 2), Math.floor(graphics.height() / 2) + 18, snippet, this.bigFont, col);
+            } else if (this.goalScored) {
+                graphics.fillRect(0, Math.floor(graphics.height() / 2) - 50, graphics.width(), 100, "rgba(0,0,0,0.7)");
+                const col = this.getTeamColour(this.goalScored);
+                const steps = 11;
+                const step = Math.floor(graphics.width() / steps);
+                for (let i = 0; i < steps; i += 2) {
+                    graphics.fillRect(i * (step), Math.floor(graphics.height() / 2) - 46, step, 10, col);
+                    graphics.fillRect(i * (step), Math.floor(graphics.height() / 2) + 36, step, 10, col);
+                }
+
+                const snippet = "GOAL!!! ";
+                const textSize = graphics.textWidth(snippet, this.bigFont);
+                for (let i = 0; i < 5; i++) {
+                    graphics.drawText((i * textSize) - ((this.frameCount * 2) % textSize), Math.floor(graphics.height() / 2) + 18, snippet, this.bigFont);
+                }
+            }
         }
+    }
 
-        // let puckX = Math.floor(this.mx)
-        // let puckY = Math.floor(this.myTeam() === Team.BLUE ? targetScreenHeight - this.my : this.my);
-        // if (this.landscape) {
-        //     const t = puckX;
-        //     puckX = puckY;
-        //     puckY = t;
-        // }
-        // graphics.drawImage(this.whiteCircle, puckX-10,puckY-10,20,20);
+    getTeamName(team: Team): string {
+        return (team === Team.RED) ? "Red" : "Blue";
+    }
 
-        graphics.pop();
-
-        // graphics.fillRect(5, 5, 70, 50, "black");
-        // graphics.drawText(10, 30, "" + graphics.getFPS(), this.font, "white");
-        // graphics.drawText(10, 50, "" + this.game?.table.atRest, this.font, "white");
+    getTeamColour(team: Team): string {
+        return (team === Team.RED) ? "#e86a17" : "#419fdd";
     }
 }
