@@ -1,5 +1,5 @@
 import type { OnChangeAction, OnChangeEvent, PlayerId, Players, RuneClient } from "rune-games-sdk/multiplayer"
-import { physics } from "togl";
+import { physics } from "togl/logic";
 
 export const targetScreenWidth = 480;
 export const targetScreenHeight = 800;
