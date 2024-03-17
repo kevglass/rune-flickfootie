@@ -34,6 +34,8 @@ export class FlickFootie implements graphics.Game {
     team2: graphics.GameImage;
     /** The partial ring that spins round players ready to be moved */
     spinRing: graphics.GameImage;
+    /** Image for the drag hand */
+    tap: graphics.GameImage;
 
     /** The smaller font used for most text */
     font: graphics.GameFont;
@@ -82,6 +84,9 @@ export class FlickFootie implements graphics.Game {
     /** The sound played at the start of a round */
     sfxWhistle: sound.Sound;
 
+    /** If its the first shot then show the little hand helping to understand how to play */
+    firstShot = true;
+    
     constructor() {
         // we're going to use the WebGL renderer with 5 pixels of texture padding
         // to prevent artifacts 
@@ -97,6 +102,7 @@ export class FlickFootie implements graphics.Game {
         this.bottomBar = graphics.loadImage(ASSETS["bottom-bar.png"]);
         this.topBar = graphics.loadImage(ASSETS["top-bar.png"]);
         this.spinRing = graphics.loadImage(ASSETS["spinring.png"]);
+        this.tap = graphics.loadImage(ASSETS["tap.png"]);
         this.font = graphics.generateFont(16, "white");
         this.bigFont = graphics.generateFont(50, "white");
 
@@ -253,6 +259,7 @@ export class FlickFootie implements graphics.Game {
         if (this.draggingPuck) {
             // note if we're close to the original puck, then just clear the puck
             if (this.dragPower > 10 && this.game) {
+                this.firstShot = false;
                 Rune.actions.shoot({
                     puckId: this.draggingPuck.id,
                     dx: -this.dragX,
@@ -353,11 +360,14 @@ export class FlickFootie implements graphics.Game {
             graphics.fillRect(middle-goalSize, 58 + this.game?.table.height, (goalSize * 2), 20, this.myTeam() === Team.BLUE ? this.getTeamColour(Team.BLUE) : this.getTeamColour(Team.RED));
             graphics.alpha(1);
 
+            let drawingDrag = false;
+
             // if we're currently dragging a puck away to shoot it and we've not already let it 
             // go and its actually our turn then draw the drag markers
             if (((this.draggingPuck && ready) || (this.game.pendingShot && this.game.whoseTurn !== this.myTeam()))) {
                 const puck = this.draggingPuck ?? this.game.table.pucks.find(p => p.id === this.game?.pendingShot?.id);
                 if (puck) {
+                    drawingDrag = true;
                     let puckX = Math.floor(puck.position.x)
                     let puckY = Math.floor(this.myTeam() === Team.BLUE ? targetScreenHeight - puck.position.y : puck.position.y);
                     if (this.landscape) {
@@ -389,6 +399,9 @@ export class FlickFootie implements graphics.Game {
                     graphics.pop();
                 }
             }
+
+            // puck to draw from
+            const firstPucks = [5, 10];
 
             // draw the game world, cycle through the pucks 
             // drawing them with the graphics based on their data 
@@ -431,6 +444,15 @@ export class FlickFootie implements graphics.Game {
                     puck.radius * 2
                 );
                 graphics.pop();
+                    
+                if (this.firstShot && !drawingDrag && puck.data?.team === this.myTeam() && this.game.whoseTurn === this.myTeam() && ready && this.game.atRest) {
+                    if (firstPucks.includes(puck.id)) {
+                        const xo = (1 - Math.sin((this.frameCount * 0.02) % Math.PI)) * -50;
+                        const yo = (1 - Math.sin((this.frameCount * 0.02) % Math.PI)) * 30;
+                
+                        graphics.drawImage(this.tap, puckX + xo, puckY + yo)
+                    }
+                }
             }
 
             graphics.pop();
