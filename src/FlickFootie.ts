@@ -317,7 +317,7 @@ export class FlickFootie implements graphics.Game {
             return;
         }
 
-        graphics.fillRect(0, 0, graphics.width(), graphics.height(), "#333");
+        graphics.fillRect(0, 0, graphics.width(), graphics.height(), "#dbd882");
 
         // consider anything where width is greater than height as landscape
         this.landscape = graphics.width() > graphics.height();
@@ -330,6 +330,7 @@ export class FlickFootie implements graphics.Game {
         if (targetHeight * this.scale > graphics.height()) {
             this.scale = graphics.height() / targetHeight;
         }
+        this.scale *= 0.9;
 
         // center the world in the game screen
         const actualScreenWidth = this.scale * targetWidth;
