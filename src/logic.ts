@@ -209,7 +209,7 @@ function takeComputerShot(game: GameState) {
         id: closest.id,
         x: dx * power * 0.75,
         y: dy * power * 0.75,
-        fireAt: Rune.gameTime() + inputDelay + 1000
+        fireAt: Rune.gameTime() + inputDelay + 500
       };
     }
   }
