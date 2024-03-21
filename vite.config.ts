@@ -14,12 +14,12 @@ export default defineConfig({
     }),
   ],
   optimizeDeps: {
-    include: ['togl', "togl/logic"],
+    include: ['toglib', "toglib/logic"],
   },
   assetsInclude: ["**/*.svg"],
   build: {
     commonjsOptions: {
-      include: [/togl/],
+      include: [/toglib/],
     },
   },
 })

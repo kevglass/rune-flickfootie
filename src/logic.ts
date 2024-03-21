@@ -1,5 +1,5 @@
 import type { OnChangeAction, OnChangeEvent, PlayerId, Players, RuneClient } from "rune-games-sdk/multiplayer"
-import { physics } from "togl/logic";
+import { physics } from "toglib/logic";
 
 // The delay between let go of the drag and actually apply the change in ms. This
 // absorbs some of the network delay

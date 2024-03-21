@@ -1,4 +1,4 @@
-import { graphics, physics, sound } from "togl";
+import { graphics, physics, sound } from "toglib";
 import {
     GameState,
     GameUpdate,
