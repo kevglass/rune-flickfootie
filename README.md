@@ -2,6 +2,8 @@
 
 A cross between shuffle puck and football. Flick your players to knock the ball into the goal. Not an execise in stellar coding, but a simple fun physics game.
 
+_All game assets are licensed for use in these projects. They remain copyright of their authors._
+
 ## How to Play
 
 * Wait for your turn
