@@ -508,9 +508,10 @@ export class FlickFootie implements graphics.Game {
                     graphics.drawText((i * textSize) - ((this.frameCount * 2) % textSize), Math.floor(graphics.height() / 2) + 18, snippet, this.bigFont);
                 }
             }
+        } else {
+            graphics.pop();
         }
 
-        graphics.pop();
     }
 
     getTeamName(team: Team): string {
