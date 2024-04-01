@@ -14,7 +14,7 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "rune-games-sdk": "^4.16.0",
+    "rune-games-sdk": "^4.16.38",
     "toglib": "../togl"
   },
   "devDependencies": {

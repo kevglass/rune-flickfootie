@@ -509,6 +509,8 @@ export class FlickFootie implements graphics.Game {
                 }
             }
         }
+
+        graphics.pop();
     }
 
     getTeamName(team: Team): string {
