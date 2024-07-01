@@ -1,4 +1,4 @@
-import type { OnChangeAction, OnChangeEvent, PlayerId, Players, RuneClient } from "rune-games-sdk/multiplayer"
+import type { PlayerId, Players, DuskClient, OnChangeParams } from "dusk-games-sdk"
 import { physics } from "toglib/logic";
 
 // The delay between let go of the drag and actually apply the change in ms. This
@@ -98,16 +98,7 @@ export enum Team {
 
 // Quick type so I can pass the complex object that is the 
 // Rune onChange blob around without ugliness. 
-export type GameUpdate = {
-  game: GameState;
-  action?: OnChangeAction<GameActions>;
-  event?: OnChangeEvent;
-  yourPlayerId: PlayerId | undefined;
-  players: Players;
-  rollbacks: OnChangeAction<GameActions>[];
-  previousGame: GameState;
-  futureGame?: GameState;
-};
+export type GameUpdate = OnChangeParams<GameState, GameActions>;
 
 type GameActions = {
   // shoot a puck on your turn
@@ -115,7 +106,7 @@ type GameActions = {
 }
 
 declare global {
-  const Rune: RuneClient<GameState, GameActions>
+  const Dusk: DuskClient<GameState, GameActions>
 }
 
 // Quick utility to flip the team
@@ -209,14 +200,14 @@ function takeComputerShot(game: GameState) {
         id: closest.id,
         x: dx * power * 0.75,
         y: dy * power * 0.75,
-        fireAt: Rune.gameTime() + inputDelay + 500
+        fireAt: Dusk.gameTime() + inputDelay + 500
       };
     }
   }
 }
 
 
-Rune.initLogic({
+Dusk.initLogic({
   minPlayers: 1,
   maxPlayers: 2,
   setup: (allPlayerIds): GameState => {
@@ -271,9 +262,9 @@ Rune.initLogic({
   update: (context) => {
     // if the game over Rune API function needs to be called
     // then do it
-    if (context.game.apiGameOverAt !== 0 && context.game.apiGameOverAt < Rune.gameTime()) {
+    if (context.game.apiGameOverAt !== 0 && context.game.apiGameOverAt < Dusk.gameTime()) {
       context.game.apiGameOverAt = 0;
-      Rune.gameOver({ players: context.game.gameOverResults });
+      Dusk.gameOver({ players: context.game.gameOverResults });
       return;
     }
 
@@ -283,7 +274,7 @@ Rune.initLogic({
     }
 
     // if theres a shot that needs apply then apply it
-    if (context.game.pendingShot && context.game.pendingShot.fireAt < Rune.gameTime()) { 
+    if (context.game.pendingShot && context.game.pendingShot.fireAt < Dusk.gameTime()) { 
       // find the puck and shoot it
       const puck = context.game.table.pucks.find(p => p.id === context.game.pendingShot?.id);
       if (puck) {
@@ -335,7 +326,7 @@ Rune.initLogic({
     if (ball && context.game.resetAt === 0) {
       if (ball.position.y < table.y) {
         // red scored!
-        context.game.resetAt = Rune.gameTime() + 5000;
+        context.game.resetAt = Dusk.gameTime() + 5000;
         context.game.gameEvents.push({
           type: "goal",
           team: Team.RED
@@ -344,7 +335,7 @@ Rune.initLogic({
       } 
       if (ball.position.y > table.y + table.height) {
         // blue scored!
-        context.game.resetAt = Rune.gameTime() + 5000;
+        context.game.resetAt = Dusk.gameTime() + 5000;
         context.game.gameEvents.push({
           type: "goal",
           team: Team.BLUE
@@ -355,7 +346,7 @@ Rune.initLogic({
 
     // if theres a reset pending then we need to reset the 
     // game up
-    if (context.game.resetAt < Rune.gameTime() && context.game.resetAt !== 0) {
+    if (context.game.resetAt < Dusk.gameTime() && context.game.resetAt !== 0) {
       context.game.resetAt = 0;
       resetTable(context.game);
 
@@ -370,7 +361,7 @@ Rune.initLogic({
         if (context.game.teamToPlayer[Team.BLUE].length > 0) {
           results[context.game.teamToPlayer[Team.BLUE]] = "LOST";
         }
-        context.game.apiGameOverAt = Rune.gameTime() + 3000;
+        context.game.apiGameOverAt = Dusk.gameTime() + 3000;
         context.game.gameOverResults = results;
 
         context.game.gameEvents.push({
@@ -388,7 +379,7 @@ Rune.initLogic({
           results[context.game.teamToPlayer[Team.BLUE]] = "WON";
         }
         results[context.game.teamToPlayer[Team.RED]] = "LOST";
-        context.game.apiGameOverAt = Rune.gameTime() + 3000;
+        context.game.apiGameOverAt = Dusk.gameTime() + 3000;
         context.game.gameOverResults = results;
 
         context.game.gameEvents.push({
@@ -404,6 +395,7 @@ Rune.initLogic({
     }
     context.game.gameStart = false;
   },
+  reactive: false,
   actions: {
     // the single action in the game, i.e. take a shot
     shoot: ({ puckId, dx, dy, power }, { game }) => {
@@ -420,10 +412,10 @@ Rune.initLogic({
           id: puckId,
           x: dx * power * 0.75,
           y: dy * power * 0.75,
-          fireAt: Rune.gameTime() + inputDelay
+          fireAt: Dusk.gameTime() + inputDelay
         };
       } else {
-        Rune.invalidAction();
+        Dusk.invalidAction();
       }
     },
   },
