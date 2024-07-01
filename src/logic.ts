@@ -287,9 +287,10 @@ Dusk.initLogic({
     // clear the game events so we can fire them during the game
     context.game.gameEvents = [];
 
-    // this is here to remove the proxies that Rune puts around the data structures
-    // that it maintains. This helps performance on low end Android devices
-    const table: physics.Table = JSON.parse(JSON.stringify(context.game.table)) as physics.Table;
+    // // this is here to remove the proxies that Rune puts around the data structures
+    // // that it maintains. This helps performance on low end Android devices
+    // const table: physics.Table = JSON.parse(JSON.stringify(context.game.table)) as physics.Table;
+    const table = context.game.table;
 
     // run the physics in two steps to improve accuracy and record all the collisions
     const collisions = physics.tableStep(15, table).collisions;
@@ -309,7 +310,7 @@ Dusk.initLogic({
     }
 
     // reset the data after its been processed
-    context.game.table = table;
+    // context.game.table = table;
     context.game.atRest = physics.tableAtRest(table);
 
     // if the game is read to take a shot and its the computer's turn then
