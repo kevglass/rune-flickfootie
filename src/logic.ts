@@ -1,4 +1,4 @@
-import type { PlayerId, Players, DuskClient, OnChangeParams } from "dusk-games-sdk"
+import type { PlayerId, Players, RuneClient, OnChangeParams } from "rune-sdk"
 import { physics } from "toglib/logic";
 
 // The delay between let go of the drag and actually apply the change in ms. This
@@ -106,7 +106,7 @@ type GameActions = {
 }
 
 declare global {
-  const Dusk: DuskClient<GameState, GameActions>
+  const Rune: RuneClient<GameState, GameActions>
 }
 
 // Quick utility to flip the team
@@ -200,14 +200,14 @@ function takeComputerShot(game: GameState) {
         id: closest.id,
         x: dx * power * 0.75,
         y: dy * power * 0.75,
-        fireAt: Dusk.gameTime() + inputDelay + 500
+        fireAt: Rune.gameTime() + inputDelay + 500
       };
     }
   }
 }
 
 
-Dusk.initLogic({
+Rune.initLogic({
   minPlayers: 1,
   maxPlayers: 2,
   setup: (allPlayerIds): GameState => {
@@ -262,9 +262,9 @@ Dusk.initLogic({
   update: (context) => {
     // if the game over Rune API function needs to be called
     // then do it
-    if (context.game.apiGameOverAt !== 0 && context.game.apiGameOverAt < Dusk.gameTime()) {
+    if (context.game.apiGameOverAt !== 0 && context.game.apiGameOverAt < Rune.gameTime()) {
       context.game.apiGameOverAt = 0;
-      Dusk.gameOver({ players: context.game.gameOverResults });
+      Rune.gameOver({ players: context.game.gameOverResults });
       return;
     }
 
@@ -274,7 +274,7 @@ Dusk.initLogic({
     }
 
     // if theres a shot that needs apply then apply it
-    if (context.game.pendingShot && context.game.pendingShot.fireAt < Dusk.gameTime()) { 
+    if (context.game.pendingShot && context.game.pendingShot.fireAt < Rune.gameTime()) { 
       // find the puck and shoot it
       const puck = context.game.table.pucks.find(p => p.id === context.game.pendingShot?.id);
       if (puck) {
@@ -327,7 +327,7 @@ Dusk.initLogic({
     if (ball && context.game.resetAt === 0) {
       if (ball.position.y < table.y) {
         // red scored!
-        context.game.resetAt = Dusk.gameTime() + 5000;
+        context.game.resetAt = Rune.gameTime() + 5000;
         context.game.gameEvents.push({
           type: "goal",
           team: Team.RED
@@ -336,7 +336,7 @@ Dusk.initLogic({
       } 
       if (ball.position.y > table.y + table.height) {
         // blue scored!
-        context.game.resetAt = Dusk.gameTime() + 5000;
+        context.game.resetAt = Rune.gameTime() + 5000;
         context.game.gameEvents.push({
           type: "goal",
           team: Team.BLUE
@@ -347,7 +347,7 @@ Dusk.initLogic({
 
     // if theres a reset pending then we need to reset the 
     // game up
-    if (context.game.resetAt < Dusk.gameTime() && context.game.resetAt !== 0) {
+    if (context.game.resetAt < Rune.gameTime() && context.game.resetAt !== 0) {
       context.game.resetAt = 0;
       resetTable(context.game);
 
@@ -362,7 +362,7 @@ Dusk.initLogic({
         if (context.game.teamToPlayer[Team.BLUE].length > 0) {
           results[context.game.teamToPlayer[Team.BLUE]] = "LOST";
         }
-        context.game.apiGameOverAt = Dusk.gameTime() + 3000;
+        context.game.apiGameOverAt = Rune.gameTime() + 3000;
         context.game.gameOverResults = results;
 
         context.game.gameEvents.push({
@@ -380,7 +380,7 @@ Dusk.initLogic({
           results[context.game.teamToPlayer[Team.BLUE]] = "WON";
         }
         results[context.game.teamToPlayer[Team.RED]] = "LOST";
-        context.game.apiGameOverAt = Dusk.gameTime() + 3000;
+        context.game.apiGameOverAt = Rune.gameTime() + 3000;
         context.game.gameOverResults = results;
 
         context.game.gameEvents.push({
@@ -413,10 +413,10 @@ Dusk.initLogic({
           id: puckId,
           x: dx * power * 0.75,
           y: dy * power * 0.75,
-          fireAt: Dusk.gameTime() + inputDelay
+          fireAt: Rune.gameTime() + inputDelay
         };
       } else {
-        Dusk.invalidAction();
+        Rune.invalidAction();
       }
     },
   },

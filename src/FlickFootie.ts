@@ -8,7 +8,7 @@ import {
     targetScreenWidth,
 } from "./logic";
 import { ASSETS } from "./lib/assets";
-import { PlayerId } from "dusk-games-sdk";
+import { PlayerId } from "rune-sdk";
 
 /**
  * Flick Footie uses the TOGL pucks table as a football field. Flick your player to get the ball
@@ -260,7 +260,7 @@ export class FlickFootie implements graphics.Game {
             // note if we're close to the original puck, then just clear the puck
             if (this.dragPower > 10 && this.game) {
                 this.firstShot = false;
-                Dusk.actions.shoot({
+                Rune.actions.shoot({
                     puckId: this.draggingPuck.id,
                     dx: -this.dragX,
                     dy: -this.dragY,
@@ -302,7 +302,7 @@ export class FlickFootie implements graphics.Game {
     resourcesLoaded(): void {
         // initialise the Rune SDK and register the callback to get
         // game updates
-        Dusk.initClient({
+        Rune.initClient({
             onChange: (update) => {
                 this.gameUpdate(update);
             },
@@ -384,7 +384,7 @@ export class FlickFootie implements graphics.Game {
 
                     let scaleBack = 1;
                     if (this.game.pendingShot) {
-                        scaleBack = Math.max(0, (this.game.pendingShot.fireAt - Dusk.gameTime()) / inputDelay);
+                        scaleBack = Math.max(0, (this.game.pendingShot.fireAt - Rune.gameTime()) / inputDelay);
                     }
                     graphics.push();
                     graphics.translate(puckX, puckY);
